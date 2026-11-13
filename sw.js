@@ -1,9 +1,10 @@
-const CACHE = "aw189-mobile-v3";
+const CACHE = "aw189-assets-v1";
 
 const CORE = [
   "./",
   "./desktop.html",
   "./mobile.html",
+  "./preload.js",
   "./manifest.webmanifest",
   "./ruffle.js",
   "./AW189.json",

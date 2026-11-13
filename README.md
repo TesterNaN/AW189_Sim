@@ -18,6 +18,10 @@ https://testerNaN.github.io/AW189_Sim/
 
 Cockpit / PFD / MFD / ECDU / MCDU / DTD
 
+## 首次加载
+
+首次打开会提示下载约 26MB 的 Ruffle/SWF 资源，带进度条；下载后缓存在本机，之后打开走 Service Worker 缓存，不再弹窗。
+
 ## 本地预览
 
 ```bash

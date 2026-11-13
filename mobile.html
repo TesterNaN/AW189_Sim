@@ -222,6 +222,7 @@
 <nav id="tabs"></nav>
 
 <script src="ruffle.js"></script>
+<script src="preload.js"></script>
 <script>
   var QUALITY = localStorage.getItem("aw189-quality") || "low";
 
@@ -375,12 +376,11 @@
   });
 
   var params = new URLSearchParams(location.search);
-  openApp((params.get("app") || "mcdu").toLowerCase());
-
-  if ("serviceWorker" in navigator && location.protocol.indexOf("http") === 0) {
-    window.addEventListener("load", function () {
-      navigator.serviceWorker.register("sw.js").catch(function () {});
-    });
+  var initialApp = (params.get("app") || "mcdu").toLowerCase();
+  if (window.AW189Preload) {
+    AW189Preload.ready.then(function () { openApp(initialApp); });
+  } else {
+    openApp(initialApp);
   }
 </script>
 </body>
