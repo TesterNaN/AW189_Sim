@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0b0f12">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>AW189 模拟器</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root {
+    --line: #26333d;
+    --text: #e6edf3;
+    --muted: #7d8b98;
+    --bar: 46px;
+    --tabs: 62px;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background: #0b0f12;
+    color: var(--text);
+    font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+    overflow: hidden;
+    overscroll-behavior: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  #top {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 0;
+    z-index: 20;
+    height: calc(var(--bar) + env(safe-area-inset-top, 0px));
+    padding-top: env(safe-area-inset-top, 0px);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-left: 12px;
+    padding-right: 10px;
+    background: #11181e;
+    border-bottom: 1px solid var(--line);
+  }
+  .brand {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: .4px;
+    white-space: nowrap;
+  }
+  #title {
+    flex: 1;
+    text-align: center;
+    font-size: 12px;
+    color: #aebbc7;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #fs {
+    flex: none;
+    height: 28px;
+    padding: 0 9px;
+    border: 1px solid #3a4a57;
+    border-radius: 5px;
+    background: #151d24;
+    color: #cbd6e0;
+    font-size: 11px;
+    cursor: pointer;
+  }
+  #fs:active { background: #1d2830; }
+  #quality {
+    flex: none;
+    height: 28px;
+    padding: 0 8px;
+    border: 1px solid #3a4a57;
+    border-radius: 5px;
+    background: #151d24;
+    color: #cbd6e0;
+    font-size: 11px;
+    cursor: pointer;
+  }
+  #stage {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: calc(var(--bar) + env(safe-area-inset-top, 0px));
+    bottom: calc(var(--tabs) + env(safe-area-inset-bottom, 0px));
+    overflow: hidden;
+    background: #05080b;
+    touch-action: none;
+  }
+  #stage ruffle-player {
+    position: absolute;
+    left: 0;
+    top: 0;
+    transform-origin: top left;
+    background: #05080b;
+    display: block;
+  }
+  #hint {
+    position: fixed;
+    left: 50%;
+    bottom: calc(var(--tabs) + env(safe-area-inset-bottom, 0px) + 10px);
+    transform: translateX(-50%);
+    z-index: 15;
+    display: none;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 10px;
+    background: rgba(17,24,30,.94);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    color: #aebbc7;
+    font-size: 11px;
+    white-space: nowrap;
+  }
+  #hint.show { display: flex; }
+  body.fs #top,
+  body.fs #tabs,
+  body.fs #hint { display: none; }
+  body.fs #stage { top: 0; bottom: 0; }
+  #exitfs {
+    position: fixed;
+    top: calc(env(safe-area-inset-top, 0px) + 8px);
+    right: 8px;
+    z-index: 40;
+    display: none;
+    height: 30px;
+    padding: 0 10px;
+    border: 1px solid #3a4a57;
+    border-radius: 6px;
+    background: rgba(17,24,30,.9);
+    color: #e6edf3;
+    font-size: 11px;
+    cursor: pointer;
+  }
+  body.fs #exitfs { display: block; }
+  #hint button {
+    border: 1px solid #3a4a57;
+    border-radius: 5px;
+    background: #1a242c;
+    color: #e6edf3;
+    font-size: 11px;
+    padding: 4px 8px;
+    cursor: pointer;
+  }
+  #tabs {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 20;
+    height: calc(var(--tabs) + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    background: #11181e;
+    border-top: 1px solid var(--line);
+  }
+  .tab {
+    min-width: 0;
+    border: 0;
+    background: transparent;
+    color: #7d8b98;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    font-size: 9px;
+    padding: 0;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .tab .ico {
+    position: relative;
+    width: 22px;
+    height: 15px;
+    border: 1px solid currentColor;
+    border-radius: 2px;
+  }
+  .tab .ico::after {
+    content: "";
+    position: absolute;
+    left: 5px;
+    right: 5px;
+    bottom: -5px;
+    height: 1px;
+    background: currentColor;
+  }
+  .tab.active {
+    color: #e6edf3;
+    background: #1b252d;
+  }
+  @media (min-width: 700px) and (orientation: landscape) {
+    .tab { font-size: 10px; }
+  }
+</style>
+</head>
+<body>
+<header id="top">
+  <div class="brand">AW189</div>
+  <div id="title">MCDU</div>
+  <button id="quality">低</button>
+  <button id="fs">全屏</button>
+</header>
+
+<main id="stage"></main>
+
+<div id="hint">
+  横屏观看更佳
+  <button id="hintfs">全屏</button>
+</div>
+
+<button id="exitfs">退出全屏</button>
+
+<nav id="tabs"></nav>
+
+<script src="ruffle.js"></script>
+<script>
+  var QUALITY = localStorage.getItem("aw189-quality") || "low";
+
+  window.RufflePlayer = window.RufflePlayer || {};
+  window.RufflePlayer.config = {
+    splashScreen: false,
+    autoplay: "on",
+    unmuteOverlay: "hidden",
+    letterbox: "off",
+    scale: "showAll",
+    quality: QUALITY,
+    contextMenu: "off",
+    warnOnUnsupportedContent: false,
+    logLevel: "error"
+  };
+
+  var APPS = {
+    cockpit: { file: "apps/cockpit.swf", w: 950,  h: 600,  title: "Cockpit", short: "Cockpit" },
+    pfd:     { file: "apps/pfd.swf",     w: 950,  h: 600,  title: "PFD",     short: "PFD" },
+    mfd:     { file: "apps/mfd.swf",     w: 950,  h: 600,  title: "MFD",     short: "MFD" },
+    ecdu:    { file: "apps/ecdu.swf",    w: 485,  h: 600,  title: "ECDU",    short: "ECDU" },
+    mcdu:    { file: "apps/mcdu.swf",    w: 768,  h: 1024, title: "MCDU",    short: "MCDU" },
+    dtd:     { file: "apps/dtd.swf",     w: 1200, h: 800,  title: "DTD",     short: "DTD" }
+  };
+
+  var stage = document.getElementById("stage");
+  var titleEl = document.getElementById("title");
+  var hint = document.getElementById("hint");
+  var tabs = document.getElementById("tabs");
+
+  var current = null;
+  var player = null;
+  var ro = null;
+  var ruffleInstance = null;
+
+  function ruffle() {
+    if (!ruffleInstance) ruffleInstance = window.RufflePlayer.newest();
+    return ruffleInstance;
+  }
+
+  function fit() {
+    if (!current || !player) return;
+    var a = APPS[current];
+    var sw = stage.clientWidth;
+    var sh = stage.clientHeight;
+    if (!sw || !sh) return;
+    var k = Math.min(sw / a.w, sh / a.h);
+    player.style.transform = "scale(" + k + ")";
+    player.style.left = ((sw - a.w * k) / 2) + "px";
+    player.style.top = ((sh - a.h * k) / 2) + "px";
+  }
+
+  function updateHint() {
+    if (document.body.classList.contains("fs")) { hint.classList.remove("show"); return; }
+    var a = APPS[current];
+    if (!a) { hint.classList.remove("show"); return; }
+    var portrait = window.innerHeight > window.innerWidth;
+    var landscapeContent = a.w > a.h;
+    hint.classList.toggle("show", portrait && landscapeContent);
+  }
+
+  function setActiveTab(key) {
+    tabs.querySelectorAll(".tab").forEach(function (b) {
+      b.classList.toggle("active", b.dataset.key === key);
+    });
+  }
+
+  function openApp(key) {
+    if (!APPS[key] || current === key) return;
+
+    if (ro) { try { ro.disconnect(); } catch (e) {} ro = null; }
+    if (player) { try { player.remove(); } catch (e) {} player = null; }
+
+    current = key;
+    var a = APPS[key];
+    titleEl.textContent = a.title;
+
+    player = ruffle().createPlayer();
+    player.style.width = a.w + "px";
+    player.style.height = a.h + "px";
+    stage.appendChild(player);
+    try { player.ruffle().load(a.file); } catch (e) { console.warn(e); }
+
+    ro = new ResizeObserver(fit);
+    ro.observe(stage);
+    requestAnimationFrame(fit);
+    setTimeout(fit, 150);
+
+    setActiveTab(key);
+    updateHint();
+  }
+
+  function setFsUI(on) {
+    document.body.classList.toggle("fs", on);
+    setTimeout(function () { fit(); updateHint(); }, 50);
+  }
+
+  async function toggleFullscreen(forceOff) {
+    var on = forceOff ? false : !document.body.classList.contains("fs");
+    setFsUI(on);
+    try {
+      if (on) {
+        if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+          await document.documentElement.requestFullscreen();
+        }
+        var a = APPS[current];
+        if (a && a.w > a.h) {
+          try { await screen.orientation.lock("landscape"); } catch (e) {}
+        }
+      } else {
+        try { if (screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch (e) {}
+        if (document.fullscreenElement) await document.exitFullscreen();
+      }
+    } catch (e) {}
+    setTimeout(function () { fit(); updateHint(); }, 350);
+  }
+
+  document.getElementById("fs").addEventListener("click", function () { toggleFullscreen(false); });
+  document.getElementById("hintfs").addEventListener("click", function () { toggleFullscreen(false); });
+  document.getElementById("exitfs").addEventListener("click", function () { toggleFullscreen(true); });
+
+  var qBtn = document.getElementById("quality");
+  function updateQuality() {
+    qBtn.textContent = QUALITY === "low" ? "低" : (QUALITY === "medium" ? "中" : "高");
+  }
+  updateQuality();
+  qBtn.addEventListener("click", function () {
+    QUALITY = QUALITY === "low" ? "medium" : (QUALITY === "medium" ? "high" : "low");
+    localStorage.setItem("aw189-quality", QUALITY);
+    window.RufflePlayer.config.quality = QUALITY;
+    updateQuality();
+    if (current) { var k = current; current = null; openApp(k); }
+  });
+
+  Object.keys(APPS).forEach(function (key) {
+    var b = document.createElement("button");
+    b.className = "tab";
+    b.dataset.key = key;
+    b.innerHTML = '<span class="ico"></span><span>' + APPS[key].short + '</span>';
+    b.addEventListener("click", function () { openApp(key); });
+    tabs.appendChild(b);
+  });
+
+  window.addEventListener("resize", function () { fit(); updateHint(); });
+  window.addEventListener("orientationchange", function () {
+    setTimeout(function () { fit(); updateHint(); }, 300);
+  });
+  document.addEventListener("fullscreenchange", function () {
+    setFsUI(!!document.fullscreenElement);
+    setTimeout(function () { fit(); updateHint(); }, 300);
+  });
+
+  var params = new URLSearchParams(location.search);
+  openApp((params.get("app") || "mcdu").toLowerCase());
+
+  if ("serviceWorker" in navigator && location.protocol.indexOf("http") === 0) {
+    window.addEventListener("load", function () {
+      navigator.serviceWorker.register("sw.js").catch(function () {});
+    });
+  }
+</script>
+</body>
+</html>

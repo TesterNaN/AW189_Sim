@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AW189 模拟器</title>
+<style>
+  :root {
+    --line: #26333d;
+    --text: #e6edf3;
+    --muted: #8b9aa8;
+    --taskbar: 46px;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background: #05080b;
+    color: var(--text);
+    font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+    overflow: hidden;
+  }
+  #desktop {
+    position: fixed;
+    inset: 0 0 var(--taskbar) 0;
+    background:
+      linear-gradient(rgba(5,8,12,.32), rgba(5,8,12,.58)),
+      url("wallpaper.jpg") center / cover no-repeat,
+      #0b0f12;
+    overflow: hidden;
+  }
+  #icons {
+    position: absolute;
+    inset: 0;
+    padding: 22px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 112px);
+    grid-auto-rows: 124px;
+    gap: 12px;
+    align-content: start;
+    justify-content: start;
+    pointer-events: none;
+  }
+  .icon {
+    pointer-events: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 4px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: #dbe6ef;
+    cursor: pointer;
+    user-select: none;
+  }
+  .icon:hover {
+    background: rgba(255,255,255,.06);
+    border-color: rgba(255,255,255,.10);
+  }
+  .icon .glyph {
+    position: relative;
+    width: 64px;
+    height: 64px;
+    border: 1px solid rgba(255,255,255,.16);
+    border-radius: 10px;
+    background: linear-gradient(180deg, #1a2833, #101820);
+    box-shadow: 0 4px 12px rgba(0,0,0,.35);
+  }
+  .icon .glyph::before {
+    content: "";
+    position: absolute;
+    left: 11px;
+    right: 11px;
+    top: 13px;
+    height: 27px;
+    border: 1px solid #8fa3b3;
+    border-radius: 2px;
+  }
+  .icon .glyph::after {
+    content: "";
+    position: absolute;
+    left: 22px;
+    right: 22px;
+    bottom: 10px;
+    height: 1px;
+    background: #8fa3b3;
+    box-shadow: 0 -4px 0 #8fa3b3, 0 -8px 0 #8fa3b3;
+  }
+  .icon .label {
+    font-size: 12px;
+    text-shadow: 0 1px 2px #000;
+    white-space: nowrap;
+  }
+  #windows {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+  .win {
+    position: absolute;
+    pointer-events: auto;
+    display: flex;
+    flex-direction: column;
+    min-width: 240px;
+    min-height: 160px;
+    background: #0b0f12;
+    border: 1px solid #2b3a46;
+    border-radius: 8px;
+    box-shadow: 0 18px 50px rgba(0,0,0,.55);
+    overflow: hidden;
+  }
+  .win.max {
+    border-radius: 0;
+    border-color: #3a5060;
+  }
+  .win-title {
+    height: 30px;
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 4px 0 10px;
+    background: linear-gradient(180deg, #1a242c, #121a20);
+    border-bottom: 1px solid var(--line);
+    cursor: move;
+    user-select: none;
+  }
+  .win-name {
+    flex: 1;
+    font-size: 12px;
+    color: #cbd6e0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .win-btns { display: flex; gap: 2px; }
+  .win-btns button {
+    width: 22px;
+    height: 22px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: #97a6b3;
+    font-size: 13px;
+    line-height: 20px;
+    cursor: pointer;
+  }
+  .win-btns button:hover { background: rgba(255,255,255,.08); color: #fff; }
+  .win-btns button[data-act="close"]:hover { background: #2a3945; }
+  .win-body {
+    position: relative;
+    flex: 1;
+    overflow: hidden;
+    background: #111;
+  }
+  .stage {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+  }
+  .stage ruffle-player {
+    position: absolute;
+    left: 0;
+    top: 0;
+    transform-origin: top left;
+    background: #111;
+    display: block;
+  }
+  .resize {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 14px;
+    height: 14px;
+    cursor: nwse-resize;
+    z-index: 3;
+    background: linear-gradient(135deg, transparent 0 45%, #3b4b58 45% 55%, transparent 55% 65%, #3b4b58 65% 75%, transparent 75%);
+    opacity: .8;
+  }
+  .win.max .resize { display: none; }
+  #taskbar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: var(--taskbar);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 8px;
+    background: rgba(10,15,20,.94);
+    border-top: 1px solid var(--line);
+    backdrop-filter: blur(8px);
+    z-index: 1000;
+  }
+  #startbtn {
+    height: 32px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    border: 1px solid #3a4a57;
+    border-radius: 6px;
+    background: #151d24;
+    color: #dbe6ef;
+    padding: 0 10px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  #startbtn:hover { background: #1d2830; }
+  #startbtn .logo {
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    background: #2b3a46;
+    color: #e6edf3;
+    font-size: 9px;
+    font-weight: 800;
+  }
+  #tasks {
+    flex: 1;
+    display: flex;
+    gap: 5px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  #tasks::-webkit-scrollbar { display: none; }
+  .task {
+    max-width: 180px;
+    height: 30px;
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    background: #131b21;
+    color: #aebbc7;
+    font-size: 11px;
+    padding: 0 10px;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .task:hover { background: #1a2730; color: #e6edf3; }
+  .task.active { border-color: #3a4a57; background: #1b252d; color: #e6edf3; }
+  #clock {
+    color: #aebbc7;
+    font-size: 11px;
+    padding: 0 6px 0 2px;
+    font-variant-numeric: tabular-nums;
+  }
+  #startmenu {
+    position: fixed;
+    left: 8px;
+    bottom: calc(var(--taskbar) + 6px);
+    width: 230px;
+    display: none;
+    padding: 8px;
+    background: #11181e;
+    border: 1px solid #2b3a46;
+    border-radius: 10px;
+    box-shadow: 0 18px 50px rgba(0,0,0,.55);
+    z-index: 1001;
+  }
+  #startmenu.open { display: block; }
+  .sm-head {
+    padding: 8px 10px 10px;
+    font-size: 13px;
+    font-weight: 650;
+  }
+  .sm-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: #dbe6ef;
+    font-size: 12px;
+    text-align: left;
+    cursor: pointer;
+  }
+  .sm-item:hover { background: #1a2730; }
+  .sm-sep {
+    height: 1px;
+    margin: 6px 4px;
+    background: var(--line);
+  }
+  @media (max-width: 720px) {
+    #icons { grid-template-columns: repeat(auto-fill, 92px); grid-auto-rows: 102px; padding: 12px; }
+    .task { max-width: 110px; }
+  }
+</style>
+</head>
+<body>
+<div id="desktop">
+  <div id="icons"></div>
+  <div id="windows"></div>
+</div>
+
+<div id="taskbar">
+  <button id="startbtn"><span class="logo">AW</span><span>开始</span></button>
+  <div id="tasks"></div>
+  <div id="clock"></div>
+</div>
+
+<div id="startmenu">
+  <div class="sm-head">AW189 模拟器</div>
+  <div id="sm-modules"></div>
+  <div class="sm-sep"></div>
+  <button class="sm-item" id="sm-closeall">全部关闭</button>
+</div>
+
+<script src="ruffle.js"></script>
+<script>
+  window.RufflePlayer = window.RufflePlayer || {};
+  window.RufflePlayer.config = {
+    splashScreen: false,
+    autoplay: "on",
+    unmuteOverlay: "hidden",
+    letterbox: "off",
+    scale: "showAll",
+    quality: "high",
+    contextMenu: "off",
+    warnOnUnsupportedContent: false,
+    logLevel: "error"
+  };
+
+  var APPS = {
+    cockpit: { file: "apps/cockpit.swf", w: 950,  h: 600,  title: "AW189 Cockpit", short: "Cockpit" },
+    pfd:     { file: "apps/pfd.swf",     w: 950,  h: 600,  title: "AW189 PFD",     short: "PFD" },
+    mfd:     { file: "apps/mfd.swf",     w: 950,  h: 600,  title: "AW189 MFD",     short: "MFD" },
+    ecdu:    { file: "apps/ecdu.swf",    w: 485,  h: 600,  title: "AW189 ECDU",    short: "ECDU" },
+    mcdu:    { file: "apps/mcdu.swf",    w: 768,  h: 1024, title: "AW189 MCDU",    short: "MCDU" },
+    dtd:     { file: "apps/dtd.swf",     w: 1200, h: 800,  title: "AW189 DTD",     short: "DTD" }
+  };
+
+  var desktop = document.getElementById("desktop");
+  var windowsLayer = document.getElementById("windows");
+  var iconsLayer = document.getElementById("icons");
+  var tasksLayer = document.getElementById("tasks");
+  var startMenu = document.getElementById("startmenu");
+  var startBtn = document.getElementById("startbtn");
+  var clockEl = document.getElementById("clock");
+
+  var wins = {};
+  var zTop = 20;
+  var activeKey = null;
+  var ruffleInstance = null;
+
+  function ruffle() {
+    if (!ruffleInstance) ruffleInstance = window.RufflePlayer.newest();
+    return ruffleInstance;
+  }
+
+  function focusWin(key) {
+    var rec = wins[key];
+    if (!rec) return;
+    rec.el.style.zIndex = ++zTop;
+    activeKey = key;
+    renderTasks();
+  }
+
+  function renderTasks() {
+    tasksLayer.innerHTML = "";
+    Object.keys(wins).forEach(function (key) {
+      var rec = wins[key];
+      var b = document.createElement("button");
+      b.className = "task" + (activeKey === key && !rec.min ? " active" : "");
+      b.textContent = APPS[key].short;
+      b.addEventListener("click", function () {
+        if (rec.min) restoreWin(key);
+        else if (activeKey === key) minimizeWin(key);
+        else focusWin(key);
+        closeStart();
+      });
+      tasksLayer.appendChild(b);
+    });
+  }
+
+  function minimizeWin(key) {
+    var rec = wins[key];
+    if (!rec) return;
+    rec.min = true;
+    rec.el.style.display = "none";
+    if (activeKey === key) activeKey = null;
+    renderTasks();
+  }
+
+  function restoreWin(key) {
+    var rec = wins[key];
+    if (!rec) return;
+    rec.min = false;
+    rec.el.style.display = "flex";
+    if (rec.max) applyMax(rec);
+    rec.fit();
+    focusWin(key);
+  }
+
+  function applyMax(rec) {
+    var W = desktop.clientWidth;
+    var H = desktop.clientHeight;
+    rec.el.classList.add("max");
+    rec.el.style.left = "0px";
+    rec.el.style.top = "0px";
+    rec.el.style.width = W + "px";
+    rec.el.style.height = H + "px";
+  }
+
+  function toggleMax(key) {
+    var rec = wins[key];
+    if (!rec) return;
+    if (rec.min) restoreWin(key);
+    if (rec.max) {
+      rec.max = false;
+      rec.el.classList.remove("max");
+      if (rec.prev) {
+        rec.el.style.left = rec.prev.left;
+        rec.el.style.top = rec.prev.top;
+        rec.el.style.width = rec.prev.width;
+        rec.el.style.height = rec.prev.height;
+      }
+      rec.fit();
+    } else {
+      rec.prev = {
+        left: rec.el.style.left,
+        top: rec.el.style.top,
+        width: rec.el.style.width,
+        height: rec.el.style.height
+      };
+      rec.max = true;
+      applyMax(rec);
+      rec.fit();
+    }
+    focusWin(key);
+  }
+
+  function closeWin(key) {
+    var rec = wins[key];
+    if (!rec) return;
+    try { rec.ro.disconnect(); } catch (e) {}
+    try { rec.el.remove(); } catch (e) {}
+    delete wins[key];
+    if (activeKey === key) activeKey = null;
+    renderTasks();
+    updateIcons();
+  }
+
+  function openApp(key) {
+    if (!APPS[key]) return;
+    if (wins[key]) { restoreWin(key); closeStart(); return; }
+
+    var a = APPS[key];
+    var win = document.createElement("section");
+    win.className = "win";
+    win.innerHTML =
+      '<div class="win-title"><span class="win-name"></span><div class="win-btns">' +
+      '<button data-act="min" title="最小化">-</button>' +
+      '<button data-act="max" title="最大化">□</button>' +
+      '<button data-act="close" title="关闭">×</button>' +
+      '</div></div><div class="win-body"><div class="stage"></div><div class="resize"></div></div>';
+    win.querySelector(".win-name").textContent = a.title;
+    windowsLayer.appendChild(win);
+
+    var W = desktop.clientWidth;
+    var H = desktop.clientHeight;
+    var n = Object.keys(wins).length;
+    var s = Math.min(W * 0.78 / a.w, H * 0.78 / a.h, 1);
+    var w = Math.round(a.w * s);
+    var h = Math.round(a.h * s);
+    var left = Math.round((W - w) / 2) + n * 24;
+    var top = Math.round((H - (h + 30)) / 2) + n * 24;
+    left = Math.max(0, Math.min(W - w, left));
+    top = Math.max(0, Math.min(H - (h + 30), top));
+    win.style.left = left + "px";
+    win.style.top = top + "px";
+    win.style.width = w + "px";
+    win.style.height = (h + 30) + "px";
+
+    var stage = win.querySelector(".stage");
+    var player = ruffle().createPlayer();
+    player.style.width = a.w + "px";
+    player.style.height = a.h + "px";
+    stage.appendChild(player);
+
+    function fit() {
+      var sw = stage.clientWidth;
+      var sh = stage.clientHeight;
+      if (!sw || !sh) return;
+      var k = Math.min(sw / a.w, sh / a.h);
+      player.style.transform = "scale(" + k + ")";
+      player.style.left = ((sw - a.w * k) / 2) + "px";
+      player.style.top = ((sh - a.h * k) / 2) + "px";
+    }
+
+    var ro = new ResizeObserver(fit);
+    ro.observe(stage);
+    requestAnimationFrame(fit);
+    setTimeout(fit, 120);
+    try { player.ruffle().load(a.file); } catch (e) { console.warn(e); }
+
+    var rec = { el: win, app: a, player: player, fit: fit, ro: ro, min: false, max: false, prev: null };
+    wins[key] = rec;
+
+    win.querySelector('[data-act="min"]').addEventListener("click", function (e) {
+      e.stopPropagation(); minimizeWin(key);
+    });
+    win.querySelector('[data-act="max"]').addEventListener("click", function (e) {
+      e.stopPropagation(); toggleMax(key);
+    });
+    win.querySelector('[data-act="close"]').addEventListener("click", function (e) {
+      e.stopPropagation(); closeWin(key);
+    });
+
+    win.addEventListener("pointerdown", function () { focusWin(key); }, true);
+
+    var tb = win.querySelector(".win-title");
+    tb.addEventListener("pointerdown", function (e) {
+      if (e.button !== 0 || e.target.closest("button")) return;
+      focusWin(key);
+      if (rec.max) return;
+      var rect = win.getBoundingClientRect();
+      var deskRect = desktop.getBoundingClientRect();
+      var ox = e.clientX - rect.left;
+      var oy = e.clientY - rect.top;
+
+      function move(ev) {
+        var x = ev.clientX - deskRect.left - ox;
+        var y = ev.clientY - deskRect.top - oy;
+        x = Math.max(0, Math.min(desktop.clientWidth - win.offsetWidth, x));
+        y = Math.max(0, Math.min(desktop.clientHeight - win.offsetHeight, y));
+        win.style.left = x + "px";
+        win.style.top = y + "px";
+      }
+      function up() {
+        window.removeEventListener("pointermove", move);
+        window.removeEventListener("pointerup", up);
+      }
+      window.addEventListener("pointermove", move);
+      window.addEventListener("pointerup", up);
+      e.preventDefault();
+    });
+    tb.addEventListener("dblclick", function () { toggleMax(key); });
+
+    var handle = win.querySelector(".resize");
+    handle.addEventListener("pointerdown", function (e) {
+      e.stopPropagation();
+      if (rec.max) return;
+      focusWin(key);
+      var sw = win.offsetWidth;
+      var sh = win.offsetHeight;
+      var sx = e.clientX;
+      var sy = e.clientY;
+      function move(ev) {
+        var nw = Math.max(240, sw + ev.clientX - sx);
+        var nh = Math.max(160, sh + ev.clientY - sy);
+        win.style.width = nw + "px";
+        win.style.height = nh + "px";
+      }
+      function up() {
+        window.removeEventListener("pointermove", move);
+        window.removeEventListener("pointerup", up);
+        fit();
+      }
+      window.addEventListener("pointermove", move);
+      window.addEventListener("pointerup", up);
+      e.preventDefault();
+    });
+
+    closeStart();
+    focusWin(key);
+    renderTasks();
+    updateIcons();
+  }
+
+  function setRect(key, x, y, w, h) {
+    var rec = wins[key];
+    if (!rec) return;
+    rec.min = false;
+    rec.max = false;
+    rec.prev = null;
+    rec.el.classList.remove("max");
+    rec.el.style.display = "flex";
+    rec.el.style.left = Math.round(x) + "px";
+    rec.el.style.top = Math.round(y) + "px";
+    rec.el.style.width = Math.round(w) + "px";
+    rec.el.style.height = Math.round(h) + "px";
+    requestAnimationFrame(rec.fit);
+  }
+
+  function placeCell(key, x, y, cw, ch) {
+    var a = APPS[key];
+    var s = Math.min(cw / a.w, ch / a.h);
+    var w = a.w * s;
+    var h = a.h * s;
+    setRect(key, x + (cw - w) / 2, y + (ch - h) / 2, w, h + 30);
+  }
+
+  function layoutReal() {
+    ["pfd", "mfd", "ecdu", "mcdu"].forEach(openApp);
+    requestAnimationFrame(function () {
+      var W = desktop.clientWidth;
+      var H = desktop.clientHeight;
+      var gap = 6;
+      var topArea = H * 0.50;
+      var bottomArea = H * 0.40;
+      var cellW = (W - gap * 3) / 2;
+
+      placeCell("pfd", gap, 0, cellW, topArea - 30);
+      placeCell("mfd", gap + cellW + gap, 0, cellW, topArea - 30);
+
+      var ec = APPS.ecdu;
+      var mc = APPS.mcdu;
+      var ek = Math.min((bottomArea - 30) / ec.h, W * 0.42 / ec.w);
+      var mk = Math.min((bottomArea - 30) / mc.h, W * 0.42 / mc.w);
+      var ew = ec.w * ek;
+      var mw = mc.w * mk;
+      var total = ew + mw + gap;
+      var start = (W - total) / 2;
+      var y = topArea + gap;
+
+      setRect("ecdu", start, y, ew, ec.h * ek + 30);
+      setRect("mcdu", start + ew + gap, y, mw, mc.h * mk + 30);
+      focusWin("mcdu");
+    });
+  }
+
+  function closeAll() {
+    Object.keys(wins).forEach(closeWin);
+    closeStart();
+  }
+
+  function updateIcons() {
+    document.querySelectorAll(".icon").forEach(function (b) {
+      var key = b.dataset.key;
+      b.style.opacity = wins[key] && !wins[key].min ? ".65" : "1";
+    });
+  }
+
+  function closeStart() {
+    startMenu.classList.remove("open");
+  }
+
+  function toggleStart() {
+    startMenu.classList.toggle("open");
+  }
+
+  Object.keys(APPS).forEach(function (key) {
+    var b = document.createElement("button");
+    b.className = "icon";
+    b.dataset.key = key;
+    b.innerHTML = '<span class="glyph"></span><span class="label">' + APPS[key].short + '</span>';
+    b.addEventListener("click", function () { openApp(key); });
+    iconsLayer.appendChild(b);
+
+    var item = document.createElement("button");
+    item.className = "sm-item";
+    item.textContent = APPS[key].short;
+    item.addEventListener("click", function () { openApp(key); });
+    document.getElementById("sm-modules").appendChild(item);
+  });
+
+  startBtn.addEventListener("click", function (e) {
+    e.stopPropagation();
+    toggleStart();
+  });
+  startMenu.addEventListener("click", function (e) { e.stopPropagation(); });
+  document.addEventListener("click", function () { closeStart(); });
+
+  document.getElementById("sm-closeall").addEventListener("click", closeAll);
+
+  function tick() {
+    var d = new Date();
+    clockEl.textContent = d.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
+  }
+  tick();
+  setInterval(tick, 30000);
+
+  window.addEventListener("resize", function () {
+    Object.keys(wins).forEach(function (key) {
+      if (wins[key].max) applyMax(wins[key]);
+      wins[key].fit();
+    });
+  });
+
+  if (new URLSearchParams(location.search).get("layout") === "real") {
+    setTimeout(layoutReal, 300);
+  }
+</script>
+</body>
+</html>

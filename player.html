@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AW189 Module</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background: #111;
+    overflow: hidden;
+  }
+  #container {
+    position: absolute;
+    left: 0;
+    top: 0;
+    overflow: hidden;
+    background: #111;
+    transform-origin: top left;
+  }
+  #container ruffle-player {
+    position: absolute;
+    left: 0;
+    top: 0;
+    display: block;
+    background: #111;
+  }
+</style>
+</head>
+<body>
+<div id="container"></div>
+<script src="ruffle.js"></script>
+<script>
+  window.RufflePlayer = window.RufflePlayer || {};
+  window.RufflePlayer.config = {
+    splashScreen: false,
+    autoplay: "on",
+    unmuteOverlay: "hidden",
+    letterbox: "off",
+    scale: "showAll",
+    quality: "high",
+    contextMenu: "off",
+    warnOnUnsupportedContent: false,
+    logLevel: "error"
+  };
+
+  var APPS = {
+    cockpit: { file: "apps/cockpit.swf", w: 950,  h: 600,  title: "Cockpit" },
+    pfd:     { file: "apps/pfd.swf",     w: 950,  h: 600,  title: "PFD" },
+    mfd:     { file: "apps/mfd.swf",     w: 950,  h: 600,  title: "MFD" },
+    ecdu:    { file: "apps/ecdu.swf",    w: 485,  h: 600,  title: "ECDU" },
+    mcdu:    { file: "apps/mcdu.swf",    w: 768,  h: 1024, title: "MCDU" },
+    dtd:     { file: "apps/dtd.swf",     w: 1200, h: 800,  title: "DTD" }
+  };
+
+  var params = new URLSearchParams(window.location.search);
+  var key = (window.__AW189_APP__ || params.get("app") || "cockpit").toLowerCase();
+  var app = APPS[key] || APPS.cockpit;
+  document.title = "AW189 " + app.title;
+
+  var W = app.w;
+  var H = app.h;
+  var container = document.getElementById("container");
+  container.style.width = W + "px";
+  container.style.height = H + "px";
+
+  function fitStage() {
+    var s = Math.min(window.innerWidth / W, window.innerHeight / H);
+    container.style.transform = "scale(" + s + ")";
+    container.style.left = ((window.innerWidth - W * s) / 2) + "px";
+    container.style.top = ((window.innerHeight - H * s) / 2) + "px";
+  }
+
+  window.addEventListener("DOMContentLoaded", function () {
+    var ruffle = window.RufflePlayer.newest();
+    var player = ruffle.createPlayer();
+    player.style.width = W + "px";
+    player.style.height = H + "px";
+    container.appendChild(player);
+    player.ruffle().load(app.file);
+    fitStage();
+    window.addEventListener("resize", fitStage);
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0f12">
+<title>AW189 模拟器</title>
+<style>
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: #0b0f12;
+    color: #aebbc7;
+    font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+  }
+  .box {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    letter-spacing: .5px;
+  }
+  a { color: #cbd6e0; }
+</style>
+</head>
+<body>
+<div class="box">
+  <span>正在加载…</span>
+  <noscript>需要启用 JavaScript；<a href="desktop.html">桌面版</a> / <a href="mobile.html">手机版</a></noscript>
+</div>
+<script>
+(function () {
+  var params = new URLSearchParams(location.search);
+  var ui = params.get("ui");
+  var ua = navigator.userAgent || "";
+  var uaMobile = /Android|iPhone|iPad|iPod|Mobile|Windows Phone|HarmonyOS|OpenHarmony|Kirin|MicroMessenger/i.test(ua);
+  var dataMobile = navigator.userAgentData && navigator.userAgentData.mobile === true;
+  var coarse = window.matchMedia && window.matchMedia("(pointer: coarse)").matches;
+  var shortSide = Math.min(screen.width || innerWidth, screen.height || innerHeight);
+
+  var mobile = dataMobile || uaMobile || (coarse && shortSide < 1000) || innerWidth < 700;
+  if (ui === "mobile") mobile = true;
+  if (ui === "desktop") mobile = false;
+
+  var parts = location.search.replace(/^\?/, "").split("&").filter(function (x) {
+    return x && !/^ui=/.test(x);
+  });
+  var q = parts.length ? "?" + parts.join("&") : "";
+  location.replace(mobile ? "mobile.html" + q : "desktop.html" + q);
+})();
+</script>
+</body>
+</html>
