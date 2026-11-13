@@ -26,7 +26,7 @@ python -m http.server 8080
 
 ## GitHub Pages
 
-Settings → Pages → Deploy from a branch → `main` / `(root)`。
+已配置 GitHub Actions：push 到 `main` 自动部署，`configure-pages` 会自动启用 Pages。
 
 `.nojekyll` 已包含；首次加载约 17MB（wasm + 一个 SWF），之后走缓存。
 
